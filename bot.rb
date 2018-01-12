@@ -95,7 +95,7 @@ bot.command(:exec, help_available: false) do |event, *command|
     end
 end
 
-bot.command(:list, usage: config["prefix"] + "list [sellerid]|[buy or sell]|[price]|[title]|[description]", description: "Add a listing in #turtle-market\nYou MUST use the `|` inbetween the args") do |event, *args|
+bot.command(:list, usage: config["prefix"] + "list [mention]|[buy or sell]|[price]|[title]|[description]", description: "Add a listing in #turtle-market\nYou MUST use the `|` inbetween the args") do |event, *args|
 
     s = event.server
     memb = s.member(event.user.id)
@@ -122,13 +122,13 @@ bot.command(:list, usage: config["prefix"] + "list [sellerid]|[buy or sell]|[pri
 
             arg = args.join(' ')
             split = arg.split('|')
-            id = split[0]
+            ment = split[0]
             bs = split[1]
             pr = split[2]
             tt = split[3]
             dc = split[4]
             
-            if id == nil || bs == nil || pr == nil || tt == nil || dc == nil
+            if ment == nil || bs == nil || pr == nil || tt == nil || dc == nil
                 supplied = false
             else
                 supplied = true
@@ -136,36 +136,45 @@ bot.command(:list, usage: config["prefix"] + "list [sellerid]|[buy or sell]|[pri
 
             if supplied
                 # Continues to add the listing
-                if bs.downcase == "buy" || bs.downcase == "offer"
+                if bs.downcase == "buy" || bs.downcase == "offer" || bs.downcase == "b"
                     b = true
                     se = false
-                elsif bs.downcase == "sell" || bs.downcase == "asking"
+                elsif bs.downcase == "sell" || bs.downcase == "asking" || bs.downcase == "s"
                     b = false
                     se = true
                 end
 
 
-                if b
+                if b == true
                     pre = "[BUY]"
-                else
+                elsif se == true
                     pre = "[SELL]"
                 end
 
-                event.server.text_channels.each do |chan|
-                    channame = chan.name
-                    chanid = chan.id
-                    if channame == "turtle-market"
-                        listing = market.insert(userid: id, buy: b, sell: se, price: pr, title: tt, desc: dc, messageid: 0)
-                        emb = chan.send_embed do |embed|
-                            embed.title = "Listing " + listing.to_s + ": " + pre + " " + tt
-                            embed.colour = 0x00843D
-                            embed.description = dc
-                            embed.add_field(name: "Price: ", value: pr)
-                            embed.add_field(name: "Seller: ", value: id)
+                user = bot.parse_mention(ment)
+                
+                if user != nil
+                    id = user.id
+
+                    event.server.text_channels.each do |chan|
+                        channame = chan.name
+                        chanid = chan.id
+                        if channame == "turtle-market"
+                            listing = market.insert(userid: id, buy: b, sell: se, price: pr, title: tt, desc: dc, messageid: 0)
+                            emb = chan.send_embed do |embed|
+                                embed.title = "Listing " + listing.to_s + ": " + pre + " " + tt
+                                embed.colour = 0x00843D
+                                embed.description = dc
+                                embed.add_field(name: "Price: ", value: pr)
+                                embed.add_field(name: "Seller ID: ", value: id.to_s, inline: true)
+                                embed.add_field(name: "Seller name: ", value: "#{user.name}##{user.discriminator}", inline: true)
+                            end
+                            market.where(:id => listing).update(messageid: emb.id)
+                            break
                         end
-                        market.where(:id => listing).update(messageid: emb.id)
-                        break
                     end
+                else
+                    event.respond "Invalid Mention"
                 end
             else
                 event.respond "Invalid number of args supplied"
@@ -187,12 +196,17 @@ bot.command(:listing, usage: config["prefix"] + "listing [id]", description: "Ge
         else
             pre = "**[SELL]**"
         end
+        userid = listing.get(:userid)
+        mention = "<@!#{userid}>"
+        user = bot.parse_mention(mention)
+
         event.channel.send_embed do |embed|
             embed.title = "Listing " + listing.get(:id).to_s + ": " + pre + " " + listing.get(:title)
             embed.colour = 0x00843D
             embed.description = listing.get(:desc)
             embed.add_field(name: "Price: ", value: listing.get(:price))
-            embed.add_field(name: "Seller: ", value: listing.get(:userid).to_s)
+            embed.add_field(name: "Seller ID: ", value: listing.get(:userid).to_s, inline: true)
+            embed.add_field(name: "Seller Name: ", value: "#{user.name}##{user.id}", inline: true)
         end
     else
         event.channel.send_embed do |embed|
