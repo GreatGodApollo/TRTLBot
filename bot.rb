@@ -206,7 +206,7 @@ bot.command(:listing, usage: config["prefix"] + "listing [id]", description: "Ge
             embed.description = listing.get(:desc)
             embed.add_field(name: "Price: ", value: listing.get(:price))
             embed.add_field(name: "Seller ID: ", value: listing.get(:userid).to_s, inline: true)
-            embed.add_field(name: "Seller Name: ", value: "#{user.name}##{user.id}", inline: true)
+            embed.add_field(name: "Seller Name: ", value: "#{user.name}##{user.discriminator}", inline: true)
         end
     else
         event.channel.send_embed do |embed|
