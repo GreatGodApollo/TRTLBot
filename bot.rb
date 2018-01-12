@@ -158,7 +158,7 @@ bot.command(:list, usage: config["prefix"] + "list [sellerid]|[buy or sell]|[pri
                         listing = market.insert(userid: id, buy: b, sell: se, price: pr, title: tt, desc: dc, messageid: 0)
                         emb = chan.send_embed do |embed|
                             embed.title = "Listing " + listing.to_s + ": " + pre + " " + tt
-                            embed.colour = 0x01960d
+                            embed.colour = 0x00843D
                             embed.description = dc
                             embed.add_field(name: "Price: ", value: pr)
                             embed.add_field(name: "Seller: ", value: id)
@@ -189,7 +189,7 @@ bot.command(:listing, usage: config["prefix"] + "listing [id]", description: "Ge
         end
         event.channel.send_embed do |embed|
             embed.title = "Listing " + listing.get(:id).to_s + ": " + pre + " " + listing.get(:title)
-            embed.colour = 0x01960d
+            embed.colour = 0x00843D
             embed.description = listing.get(:desc)
             embed.add_field(name: "Price: ", value: listing.get(:price))
             embed.add_field(name: "Seller: ", value: listing.get(:userid).to_s)
@@ -223,7 +223,7 @@ bot.command(:unlist, usage: config["prefix"] + "unlist [listing id]", descriptio
                 event.channel.send_embed do |embed|
                     embed.title = "Confirm action"
                     embed.description = "Are you sure you want to delete listing ##{id}\n(Respond with `yes` or `no`)"
-                    embed.colour = 0x01960d
+                    embed.colour = 0x00843D
                 end
                 event.user.await(:"unlist_#{event.user.id}") do |await_event|
                     next true unless await_event.channel.id == event.channel.id
@@ -239,7 +239,7 @@ bot.command(:unlist, usage: config["prefix"] + "unlist [listing id]", descriptio
                                 event.channel.send_embed do |embed|
                                     embed.title = "Action confirmed"
                                     embed.description = "The listing has been removed"
-                                    embed.colour = 0x01960d
+                                    embed.colour = 0x00843D
                                 end
                                 break
                             end
@@ -300,7 +300,7 @@ Conforming with above, usage follows
 After using the command, you must confirm your action by typing `yes` or cancel by typing `no`
 After confirming the listing and DB entry will be deleted
 "
-        embed.colour = 0xD4AF37
+        embed.colour = 0x00843D
     end
 end
 
