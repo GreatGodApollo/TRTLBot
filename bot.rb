@@ -335,7 +335,7 @@ bot.command(:registerwallet, usage: config["prefix"] + "registerwallet [Address]
         event.server.text_channels.each do |chan|
             channame = chan.name
             chanid = chan.id
-            if channame == "bot-test"
+            if channame == "wallets"
                 listing = wallets.insert(userid: event.user.id, address: wallet, messageid: 0)
                 em = chan.send_embed do |embed|
                     embed.title = "#{event.user.name}##{event.user.discriminator}'s Wallet"
