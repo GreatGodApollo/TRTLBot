@@ -7,6 +7,8 @@ require 'discordrb'
 require 'sequel'
 require 'json'
 
+
+
 # Json stuffs
 configfile = File.read("config.json")
 config = JSON.parse(configfile)
@@ -22,7 +24,7 @@ DB = Sequel.connect('sqlite://trtl.db')
 
 # Define the bot
 bot = Discordrb::Commands::CommandBot.new(token: config["token"], client_id: config["clientid"], prefix: config["prefix"])
-
+adminbot = Discordrb::Commands::CommandBot.new(token: config["token"], client_id: config["clientid"], prefix: config["adminprefix"])
 
 bot.bucket :ping, limit: 2, time_span: 60, delay: 30
 
@@ -41,9 +43,16 @@ DB.create_table? :market do
     Integer :messageid
 end
 
+DB.create_table? :wallets do
+    primary_key :id
+    String :address
+    Integer :userid
+    Integer :messageid
+end
 
 
 market = DB[:market]
+wallets = DB[:wallets]
 class Market < Sequel::Model(DB[:market]); end
 
 
@@ -63,6 +72,7 @@ bot.command(:pong, help_available: false) do |event|
             embed.title = "You found a secret!"
             embed.colour = 0xD4AF37
             embed.description = "Don't tell anyone how you did this"
+            embed.image = Discordrb::Webhooks::EmbedImage.new(url: "https://fthmb.tqn.com/UtCkhoQca0ZSpWZNBn39e-f0xnc=/2116x1417/filters:fill(auto,1)/Pet-turtle-GettyImages-163253309-58da61e53df78c516256c1c6.jpg")
         end
         sleep(3)
 
@@ -71,7 +81,7 @@ bot.command(:pong, help_available: false) do |event|
     nil
 end
 
-bot.command(:eval, help_available: false) do |event, *code|
+adminbot.command(:eval, help_available: false) do |event, *code|
     break unless event.user.id == config["owner"]
   
     begin
@@ -85,7 +95,7 @@ bot.command(:eval, help_available: false) do |event, *code|
     end
 end
 
-bot.command(:exec, help_available: false) do |event, *command|
+adminbot.command(:exec, help_available: false) do |event, *command|
     break unless event.user.id == config["owner"]
 
     begin
@@ -289,6 +299,8 @@ bot.command(:unlist, usage: config["prefix"] + "unlist [listing id]", descriptio
     nil
 end
 
+
+
 bot.command(:guide, usage: config["prefix"] + "guide", description: "Learn how to use #{config["prefix"]}list and #{config["prefix"]}unlist") do |event|
     event.channel.send_embed do |embed|
         embed.title = "Usage"
@@ -318,4 +330,116 @@ After confirming the listing and DB entry will be deleted
     end
 end
 
-bot.run
+bot.command(:registerwallet, usage: config["prefix"] + "registerwallet [Address]") do |event, wallet|
+    if wallets.where(userid: event.user.id).get(:address) == nil && wallet.length == 99 && wallet.start_with?("TRTL")
+        event.server.text_channels.each do |chan|
+            channame = chan.name
+            chanid = chan.id
+            if channame == "bot-test"
+                listing = wallets.insert(userid: event.user.id, address: wallet, messageid: 0)
+                em = chan.send_embed do |embed|
+                    embed.title = "#{event.user.name}##{event.user.discriminator}'s Wallet"
+                    embed.description = "#{wallet}\nDB Listing ID: #{listing}"
+                    embed.color = 0xD4AF37
+                end
+                wallets.where(id: listing).update(messageid: em.id)
+                break
+            end
+        end
+    elsif wallet.length > 99
+        event.channel.send_embed do |embed|
+            embed.title = ":x:Error:x:"
+            embed.description = "Your wallet must be 99 characters long, your entry was too long"
+            embed.colour = 0xef0000
+        end
+    elsif wallet.length < 99
+        event.channel.send_embed do |embed|
+            embed.title = ":x:Error:x:"
+            embed.description = "You wallet must be 99 characters long, your entry was too short"
+            embed.colour = 0xef0000
+        end
+    elsif !wallet.start_with?("TRTL")
+        event.channel.send_embed do |embed|
+            embed.title = ":x:Error:x:"
+            embed.description = "Wallets start with `TRTL`"
+            embed.colour = 0xef0000
+        end
+    else
+        event.channel.send_embed do |embed|
+            embed.title = ":x:Error:x:"
+            embed.description = "You have already submitted a wallet"
+            embed.colour = 0xef0000
+        end
+    end
+end
+
+bot.command(:wallet, usage: config["prefix"] + "wallet [User Mention]") do |event, mention|
+    if mention != ""
+        user = bot.parse_mention(mention)
+        if wallets.where(userid: user.id).get(:address) != nil
+            event.channel.send_embed do |embed|
+                embed.title = "#{user.name}##{user.discriminator}'s Wallet"
+                embed.description = "#{wallets.where(userid: user.id).get(:address)}"
+                embed.colour = 0xD4AF37
+            end
+        else
+            event.channel.send_embed do |embed|
+                embed.title = ":x:Error:x:"
+                embed.description = "#{user.name}##{user.discriminator} Has not submitted a wallet"
+                embed.colour = 0xef0000
+            end
+        end
+    else
+        event.channel.send_embed do |embed|
+            embed.title = ":x:Error:x:"
+            embed.description = "Please mention someone"
+            embed.colour = 0xef0000
+        end
+    end
+end
+
+bot.command(:updatewallet) do |event, wallet|
+    if wallets.where(userid: event.user.id).get(:address) == nil
+        event.channel.send_embed do |embed|
+            embed.title = ":x:Error:x:"
+            embed.description = "You currently don't have a wallet, please submit one with `!registerwallet`"
+            embed.colour = 0xef0000
+        end
+    elsif wallets.where(userid: event.user.id).get(:address) == wallet
+        event.channel.send_embed do |embed|
+            embed.title = ":x:Error:x:"
+            embed.description = "Your wallet is already #{wallet}"
+            embed.colour = 0xef0000
+        end
+    elsif wallets.where(userid: event.user.id).get(:address) != nil && wallet.length == 99 && wallet.start_with?("TRTL")
+        walletf = wallets.where(userid: event.user.id)
+        event.channel.send_embed do |embed|
+            embed.title = "Your wallet has been changed"
+            embed.description = wallet
+            embed.colour = 0x01960d
+        end
+        walletf.update(address: wallet)
+    elsif wallet.length < 99
+        event.channel.send_embed do |embed|
+            embed.title = ":x:Error:x:"
+            embed.description = "Your wallet must be 99 characters long, your entry was too short"
+            embed.colour = 0xef0000
+        end
+    elsif wallet.length > 99
+        event.channel.send_embed do |embed|
+            embed.title = ":x:Error:x:"
+            embed.description = "Your wallet must be 99 characters long, your entry was too long"
+            embed.colour = 0xef0000
+        end
+    elsif !wallet.start_with?("TRTL")
+        event.channel.send_embed do |embed|
+            embed.title = ":x:Error:x:"
+            embed.description = "Wallets start with `TRTL`"
+            embed.colour = 0xef0000
+        end
+    end  
+end
+
+
+bot.run(async: true)
+adminbot.run
