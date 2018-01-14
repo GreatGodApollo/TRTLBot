@@ -13,6 +13,8 @@ require 'json'
 configfile = File.read("config.json")
 config = JSON.parse(configfile)
 
+
+
 if config['token'] == nil || config['prefix'] == nil || config['clientid'] == nil || config['role'] == nil
     exit
 end
@@ -32,6 +34,8 @@ TURTLE_EMOJI = "🐢".freeze
 CHECK_MARK = "✅".freeze 
 X_EMOJI = "❌".freeze
 
+disabled = []
+
 DB.create_table? :market do 
     primary_key :id
     Integer :userid
@@ -48,11 +52,19 @@ DB.create_table? :wallets do
     String :address
     Integer :userid
     Integer :messageid
+    String :deposit
+end
+
+DB.create_table? :disabled do
+    primary_key :id
+    String :command
+    Boolean :disabled
 end
 
 
 market = DB[:market]
 wallets = DB[:wallets]
+disabled = DB[:disabled]
 class Market < Sequel::Model(DB[:market]); end
 
 
@@ -106,7 +118,6 @@ adminbot.command(:exec, help_available: false) do |event, *command|
 end
 
 bot.command(:list, usage: config["prefix"] + "list [mention]|[buy or sell]|[price]|[title]|[description]", description: "Add a listing in #turtle-market\nYou MUST use the `|` inbetween the args") do |event, *args|
-
     s = event.server
     memb = s.member(event.user.id)
     for r in memb.roles
@@ -195,6 +206,7 @@ bot.command(:list, usage: config["prefix"] + "list [mention]|[buy or sell]|[pric
     else
         event.respond "Invalid Permissions"
     end
+    nil
 end
 
 bot.command(:listing, usage: config["prefix"] + "listing [id]", description: "Get information on the listing") do |event, id|
@@ -331,7 +343,13 @@ After confirming the listing and DB entry will be deleted
 end
 
 bot.command(:registerwallet, usage: config["prefix"] + "registerwallet [Address]") do |event, wallet|
-    if wallets.where(userid: event.user.id).get(:address) == nil && wallet.length == 99 && wallet.start_with?("TRTL")
+    if wallet == nil 
+        event.channel.send_embed do |embed|
+            embed.title = ":x:Error:x"
+            embed.description = "Please provide an address"
+            embed.colour = 0xef0000
+        end
+    elsif wallets.where(userid: event.user.id).get(:address) == nil && wallet.length == 99 && wallet.start_with?("TRTL")
         event.server.text_channels.each do |chan|
             channame = chan.name
             chanid = chan.id
@@ -371,6 +389,7 @@ bot.command(:registerwallet, usage: config["prefix"] + "registerwallet [Address]
             embed.colour = 0xef0000
         end
     end
+    nil
 end
 
 bot.command(:wallet, usage: config["prefix"] + "wallet [User Mention]") do |event, mention|
@@ -411,6 +430,12 @@ bot.command(:updatewallet) do |event, wallet|
             embed.description = "Your wallet is already #{wallet}"
             embed.colour = 0xef0000
         end
+    elsif wallet == nil
+        event.channel.send_embed do |embed|
+            embed.title = ":x:Error:x:"
+            embed.description = "Please supply a wallet!"
+            embed.colour = 0xef0000
+        end
     elsif wallets.where(userid: event.user.id).get(:address) != nil && wallet.length == 99 && wallet.start_with?("TRTL")
         walletf = wallets.where(userid: event.user.id)
         event.channel.send_embed do |embed|
@@ -437,8 +462,34 @@ bot.command(:updatewallet) do |event, wallet|
             embed.description = "Wallets start with `TRTL`"
             embed.colour = 0xef0000
         end
-    end  
+    end 
 end
+
+bot.command(:tipowner) do |event|
+    event.channel.send_embed do |embed|
+        embed.title = "So you want to tip the bot owner eh?"
+        embed.description = "If you want to tip the creator of TRTLBot, you can use this address:\n\nTRTLuwWtVeb5jWX1ewfH92dwt7dLr7YEgevfoHRvWjDxMwYGHqKBWT62vND587z5h9X7WYH7gy8DN56QkCebUXjkhrNMebuGWf9\n\nIf you would like to tip the creator of TurtleBot, you can use this address:\n\nTRTLuzVNVhSZaUbmqp5DiC8esAhpXLQgzYPKAjtGHDCVKsSBoEBfftZMabFxDekEAT6hDkyD8LRzyb8zi7yEqgmm9152SDxCHZX"
+        embed.colour = 0x01960d
+    end
+end
+
+bot.command(:deposit) do |event|
+    user = event.user
+    if wallets.where(userid: event.user.id).get(:address) != nil
+        event.user.pm.send_embed do |embed|
+            embed.title = "Adding TRTL to your tipping address"
+            embed.description = "To add money to your tipping address send TRTL here:\n#{wallets.where(userid: user.id).get(:deposit)}"
+            embed.colour = 0x01960d
+        end
+    else
+        event.channel.send_embed do |embed|
+            embed.title = ":x:Error:x:"
+            embed.description = "You don't have a wallet submitted!"
+            embed.colour = 0xef0000
+        end
+    end
+end
+
 
 
 bot.run(async: true)
