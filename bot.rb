@@ -402,7 +402,7 @@ bot.command(:registerwallet, usage: config["prefix"] + "registerwallet [Address]
 end
 
 bot.command(:wallet, usage: config["prefix"] + "wallet [User Mention]") do |event, mention|
-    if mention != ""
+    if mention != nil
         user = bot.parse_mention(mention)
         if wallets.where(userid: user.id).get(:address) != nil
             event.channel.send_embed do |embed|
@@ -417,6 +417,21 @@ bot.command(:wallet, usage: config["prefix"] + "wallet [User Mention]") do |even
                 embed.colour = 0xef0000
             end
         end
+    elsif mention == nil
+        user = event.user
+        if wallets.where(userid: user.id).get(:address) != nil
+            event.channel.send_embed do |embed|
+                embed.title = "Your Wallet!"
+                embed.description = "#{wallets.where(userid: user.id).get(:address)}"
+                embed.colour = 0xD4AF37
+            end
+        else
+            event.channel.send_embed do |embed|
+                embed.title = ":x:Error:x:"
+                embed.description = "You have not submitted a wallet"
+                embed.colour = 0xef0000
+            end
+        end
     else
         event.channel.send_embed do |embed|
             embed.title = ":x:Error:x:"
@@ -424,6 +439,7 @@ bot.command(:wallet, usage: config["prefix"] + "wallet [User Mention]") do |even
             embed.colour = 0xef0000
         end
     end
+    nil
 end
 
 bot.command(:updatewallet) do |event, wallet|
@@ -471,7 +487,8 @@ bot.command(:updatewallet) do |event, wallet|
             embed.description = "Wallets start with `TRTL`"
             embed.colour = 0xef0000
         end
-    end 
+    end
+    nil
 end
 
 bot.command(:tipowner) do |event|
@@ -499,7 +516,9 @@ bot.command(:deposit) do |event|
     end
 end
 
-
+bot.command(:choose, min_args: 2) do |event, *args|
+    event.respond("I choose: " + args[rand(0..(args.length)-1)] + "!")
+end
 
 bot.run(async: true)
 adminbot.run
