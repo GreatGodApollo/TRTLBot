@@ -56,7 +56,7 @@ wallets = DB[:wallets]
 class Market < Sequel::Model(DB[:market]); end
 
 
-bot.command(:faucet, help_available: false, description: "get faucet's remaining coins") do |event|
+bot.command(:faucet, description: "get faucet's remaining coins") do |event|
     resp = HTTParty.get("https://faucet.trtl.me/balance")
     event.channel.send_embed do |embed|
         embed.title = "Faucet has %s TRTLs remaining" % JSON.parse(resp)['available']
