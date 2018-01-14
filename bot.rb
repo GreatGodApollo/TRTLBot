@@ -6,7 +6,7 @@
 require 'discordrb'
 require 'sequel'
 require 'json'
-
+require 'httparty'
 
 
 # Json stuffs
@@ -67,6 +67,15 @@ wallets = DB[:wallets]
 disabled = DB[:disabled]
 class Market < Sequel::Model(DB[:market]); end
 
+
+bot.command(:faucet, description: "get faucet's remaining coins") do |event|
+    resp = HTTParty.get("https://faucet.trtl.me/balance")
+    event.channel.send_embed do |embed|
+        embed.title = "Faucet has %s TRTLs remaining" % JSON.parse(resp)['available']
+        embed.description = "Donations: TRTLv14M1Q9223QdWMmJyNeY8oMjXs5TGP9hDc3GJFsUVdXtaemn1mLKA25Hz9PLu89uvDafx9A93jW2i27E5Q3a7rn8P2fLuVA"
+        embed.color = 0xD4AF37
+    end
+end
 
 bot.command(:ping, bucket: :ping, rate_limit_message: 'Calm down for %time% more seconds!', help_available: false) do |event|
     m = event.respond("Sending Explosion!💣")
