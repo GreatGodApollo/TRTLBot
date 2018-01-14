@@ -324,9 +324,9 @@ bot.command(:guide, usage: config["prefix"] + "guide", description: "Learn how t
 To use list you require the `@trader` role
 Users with the `@trader` role may use list conforming to the following:
 - In between args you **__MUST__** use `|`
-- The SellerID is the UserID of the seller/offerer
+- The Mention is the @ of the seller (Actually mention them)
 Conforming with above, usage follows:
-`list [SellerID]|[Buy/Sell]|[Price]|[Title]|[Description]`
+`list [Mention]|[Buy/Sell]|[Price]|[Title]|[Description]`
 
 **unlist:**
 To use unlist you require the `@trader` role
