@@ -68,12 +68,17 @@ disabled = DB[:disabled]
 class Market < Sequel::Model(DB[:market]); end
 
 
+bot.command(:price, description: "get the price of a trtl") do |event|
+    event << "1TRTL = 1TRTL"
+end
+
 bot.command(:faucet, description: "get faucet's remaining coins") do |event|
     resp = HTTParty.get("https://faucet.trtl.me/balance")
     event.channel.send_embed do |embed|
         embed.title = "Faucet has %s TRTLs remaining" % JSON.parse(resp)['available']
         embed.description = "Donations: TRTLv14M1Q9223QdWMmJyNeY8oMjXs5TGP9hDc3GJFsUVdXtaemn1mLKA25Hz9PLu89uvDafx9A93jW2i27E5Q3a7rn8P2fLuVA"
-        embed.color = 0xD4AF37
+        embed.color = 0x27aa6b
+        embed.url = "https://faucet.trtl.me"
     end
 end
 
@@ -400,6 +405,21 @@ bot.command(:registerwallet, usage: config["prefix"] + "registerwallet [Address]
     end
     nil
 end
+
+
+bot.command(:payout, usage: config["prefix"] + "payout [Address], [Pool URL]") do |event,addr,url|
+    if addr != nil
+        parameters = {'address' => addr,'longpool' => 'false'}
+        response = HTTParty.get(url.concat("api/stats_address"), :query => parameters)
+        json = JSON.parse(response.body)
+        event.channel.send_embed do |embed|
+            embed.title="Pool has paid %i TRTLs"%(json['stats']['paid'].to_i/100)
+            embed.description="You have a pending balance of %i"%(json['stats']['balance'].to_i/100)
+            embed.add_field(name: "Your hashrate: ", value: json['stats']['hashrate'])
+        end
+    end
+end
+
 
 bot.command(:wallet, usage: config["prefix"] + "wallet [User Mention]") do |event, mention|
     if mention != nil
