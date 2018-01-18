@@ -68,7 +68,8 @@ disabled = DB[:disabled]
 class Market < Sequel::Model(DB[:market]); end
 
 
-bot.command(:faucet, description: "get faucet's remaining coins") do |event|
+
+bot.command(:faucet, description: "Get faucet's remaining coins") do |event|
     resp = HTTParty.get("https://faucet.trtl.me/balance")
     event.channel.send_embed do |embed|
         embed.title = "Faucet has %s TRTLs remaining" % JSON.parse(resp)['available']
@@ -77,12 +78,12 @@ bot.command(:faucet, description: "get faucet's remaining coins") do |event|
     end
 end
 
-bot.command(:ping, bucket: :ping, rate_limit_message: 'Calm down for %time% more seconds!', help_available: false) do |event|
+bot.command(:ping, bucket: :ping, rate_limit_message: 'Calm down for %time% more seconds!', help_available: false, channels: [401109818607140864, 400654324377714689]) do |event|
     m = event.respond("Sending Explosion!💣")
     m.edit("💥Explosion Received in: #{m.timestamp - Time.now}ms 💥")
 end
 
-bot.command(:pong, help_available: false) do |event|
+bot.command(:pong, help_available: false, bucket: :ping, channels: [401109818607140864, 400654324377714689]) do |event|
     event.message.react(TURTLE_EMOJI)
     bot.add_await(:"secret_#{event.message.id}", Discordrb::Events::ReactionAddEvent, emoji: TURTLE_EMOJI) do |reaction_event|
         next true unless reaction_event.message.id == event.message.id
