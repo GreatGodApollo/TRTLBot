@@ -514,7 +514,7 @@ end
 bot.command(:tipowner) do |event|
     event.channel.send_embed do |embed|
         embed.title = "So you want to tip the bot owner eh?"
-        embed.description = "If you want to tip the creator of TRTLBot, you can use this address:\n\nTRTLuwWtVeb5jWX1ewfH92dwt7dLr7YEgevfoHRvWjDxMwYGHqKBWT62vND587z5h9X7WYH7gy8DN56QkCebUXjkhrNMebuGWf9\n\nIf you would like to tip the creator of TurtleBot, you can use this address:\n\nTRTLuzVNVhSZaUbmqp5DiC8esAhpXLQgzYPKAjtGHDCVKsSBoEBfftZMabFxDekEAT6hDkyD8LRzyb8zi7yEqgmm9152SDxCHZX"
+        embed.description = "If you want to tip the creator of TRTLBot, you can use this address:\n\nTRTLv1B7voYh5LQ38frGLvFpZ7bEXcvMD66fN4kzgww3d1eAxGJeGAz49aFqT5XUQsFJbY69ubf3JZ8ZkNmxhQCPeo4e3xVkAoD\n\nIf you would like to tip the creator of TurtleBot, you can use this address:\n\nTRTLuzVNVhSZaUbmqp5DiC8esAhpXLQgzYPKAjtGHDCVKsSBoEBfftZMabFxDekEAT6hDkyD8LRzyb8zi7yEqgmm9152SDxCHZX"
         embed.colour = 0x01960d
     end
 end
