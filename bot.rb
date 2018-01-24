@@ -68,9 +68,16 @@ disabled = DB[:disabled]
 class Market < Sequel::Model(DB[:market]); end
 
 
-bot.command(:price, description: "get the price of a trtl") do |event|
-    event << "1TRTL = 1TRTL"
+bot.command(:price, description: "Get the current price of TRTL in BTC", bucket: :price) do |event|
+    resp = HTTParty.get("https://tradeogre.com/api/v1/ticker/BTC-TRTL")
+    event.channel.send_embed do |embed|
+        embed.title = "Current Price of TRTL"
+        embed.url = "https://tradeogre.com/exchange/BTC-TRTL"
+        embed.description = "#{JSON.parse(resp)["price"]} BTC"
+        embed.color = 0xD4AF37
+    end
 end
+
 
 bot.command(:faucet, description: "get faucet's remaining coins") do |event|
     resp = HTTParty.get("https://faucet.trtl.me/balance")
@@ -359,7 +366,7 @@ end
 bot.command(:registerwallet, usage: config["prefix"] + "registerwallet [Address]") do |event, wallet|
     if wallet == nil 
         event.channel.send_embed do |embed|
-            embed.title = ":x:Error:x"
+            embed.title = ":x:Error:x:"
             embed.description = "Please provide an address"
             embed.colour = 0xef0000
         end
@@ -404,20 +411,6 @@ bot.command(:registerwallet, usage: config["prefix"] + "registerwallet [Address]
         end
     end
     nil
-end
-
-
-bot.command(:payout, usage: config["prefix"] + "payout [Address], [Pool URL]") do |event,addr,url|
-    if addr != nil
-        parameters = {'address' => addr,'longpool' => 'false'}
-        response = HTTParty.get(url.concat("api/stats_address"), :query => parameters)
-        json = JSON.parse(response.body)
-        event.channel.send_embed do |embed|
-            embed.title="Pool has paid %i TRTLs"%(json['stats']['paid'].to_i/100)
-            embed.description="You have a pending balance of %i"%(json['stats']['balance'].to_i/100)
-            embed.add_field(name: "Your hashrate: ", value: json['stats']['hashrate'])
-        end
-    end
 end
 
 
