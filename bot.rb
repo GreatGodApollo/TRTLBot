@@ -68,13 +68,24 @@ disabled = DB[:disabled]
 class Market < Sequel::Model(DB[:market]); end
 
 
+bot.command(:price, description: "Get the current price of TRTL in BTC", bucket: :price) do |event|
+    resp = HTTParty.get("https://tradeogre.com/api/v1/ticker/BTC-TRTL")
+    event.channel.send_embed do |embed|
+        embed.title = "Current Price of TRTL"
+        embed.url = "https://tradeogre.com/exchange/BTC-TRTL"
+        embed.description = "#{JSON.parse(resp)["price"]} BTC"
+        embed.color = 0xD4AF37
+    end
+end
 
-bot.command(:faucet, description: "Get faucet's remaining coins") do |event|
+
+bot.command(:faucet, description: "get faucet's remaining coins") do |event|
     resp = HTTParty.get("https://faucet.trtl.me/balance")
     event.channel.send_embed do |embed|
         embed.title = "Faucet has %s TRTLs remaining" % JSON.parse(resp)['available']
         embed.description = "Donations: TRTLv14M1Q9223QdWMmJyNeY8oMjXs5TGP9hDc3GJFsUVdXtaemn1mLKA25Hz9PLu89uvDafx9A93jW2i27E5Q3a7rn8P2fLuVA"
-        embed.color = 0xD4AF37
+        embed.color = 0x27aa6b
+        embed.url = "https://faucet.trtl.me"
     end
 end
 
@@ -355,7 +366,7 @@ end
 bot.command(:registerwallet, usage: config["prefix"] + "registerwallet [Address]") do |event, wallet|
     if wallet == nil 
         event.channel.send_embed do |embed|
-            embed.title = ":x:Error:x"
+            embed.title = ":x:Error:x:"
             embed.description = "Please provide an address"
             embed.colour = 0xef0000
         end
@@ -401,6 +412,7 @@ bot.command(:registerwallet, usage: config["prefix"] + "registerwallet [Address]
     end
     nil
 end
+
 
 bot.command(:wallet, usage: config["prefix"] + "wallet [User Mention]") do |event, mention|
     if mention != nil
