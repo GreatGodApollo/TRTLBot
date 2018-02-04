@@ -12,7 +12,7 @@ require 'httparty'
 # Json stuffs
 configfile = File.read("config.json")
 config = JSON.parse(configfile)
-
+VERSION = "1.2.1"
 
 
 if config['token'] == nil || config['prefix'] == nil || config['clientid'] == nil
@@ -29,7 +29,7 @@ bot = Discordrb::Commands::CommandBot.new(token: config["token"], client_id: con
 
 bot.bucket :ping, limit: 2, time_span: 60, delay: 30
 bot.bucket :price, limit: 1, time_span: 30
-
+bot.bucket :suggestcool, limit: 1, time_span: 90
 TURTLE_EMOJI = "🐢".freeze
 CHECK_MARK = "✅".freeze 
 X_EMOJI = "❌".freeze
@@ -65,14 +65,14 @@ bot.command(:price, description: "Get the current price of TRTL in BTC", bucket:
 end
 
 # Owner Commands
-bot.command(:o, help_available: false) do |event, command, *args|
+bot.command(:o, description: "Big Boys Only") do |event, command, *args|
     break unless event.user.id == config["owner"]
     case command
     when "eval"
         begin
             event.channel.send_embed do |embed|
-                embed.add_field(name: "Input: ", value: "#{args.join(' ')}")
-                embed.add_field(name: "Output: ", value: "```#{eval args.join(' ')}```")
+                embed.add_field(name: "Input: ", value: "```\n#{args.join(' ')}```")
+                embed.add_field(name: "Output: ", value: "```\n#{eval args.join(' ')}```")
                 embed.colour = 0x01960d
             end
         rescue
@@ -82,13 +82,34 @@ bot.command(:o, help_available: false) do |event, command, *args|
         begin
             eval "`#{args.join(' ')}`"
         rescue
-            'An error occured 😞'
+            'An error occurred 😞'
+        end
+    when "shutdown"
+        begin 
+            event.channel.send_embed do |embed|
+                embed.title = "Shutting down"
+                embed.description = "The Bot Is Shutting Down"
+                embed.colour = 0xef0000
+            end
+            sleep 1
+            bot.stop
+        rescue
+            'An error occurred 😞'
+        end
+    when "bc"
+        bot.servers.each_value do |server|
+            server.text_channels.each do |c|
+                if c.name == "general" || c.name == "wallets"
+                    c.send("**Broadcast from #{event.user.name}##{event.user.discriminator}**\n#{args.join(' ')}")
+                end
+            end
         end
     end
+    nil
 end
 
 
-bot.command(:faucet, description: "get faucet's remaining coins") do |event|
+bot.command(:faucet, description: "Get the faucet's remaining coins") do |event|
     resp = HTTParty.get("https://faucet.trtl.me/balance")
     event.channel.send_embed do |embed|
         embed.title = "Faucet has %s TRTLs remaining" % JSON.parse(resp)['available']
@@ -123,7 +144,7 @@ bot.command(:pong, help_available: false, bucket: :ping, channels: [401109818607
     nil
 end
 
-bot.command(:registerwallet, usage: config["prefix"] + "registerwallet [Address]") do |event, wallet|
+bot.command(:registerwallet, usage: config["prefix"] + "registerwallet <Address>", description: "Register your wallet in the DB") do |event, wallet|
     if wallet == nil 
         event.channel.send_embed do |embed|
             embed.title = ":x:Error:x:"
@@ -143,6 +164,11 @@ bot.command(:registerwallet, usage: config["prefix"] + "registerwallet [Address]
                 end
                 wallets.where(id: listing).update(messageid: em.id)
                 break
+            end
+            event.channel.send_embed do |embed|
+                embed.title = "Success"
+                embed.description = "Your wallet has been succesfully submitted"
+                embed.colour = 0x27aa6b
             end
         end
     elsif wallet.length > 99
@@ -174,7 +200,7 @@ bot.command(:registerwallet, usage: config["prefix"] + "registerwallet [Address]
 end
 
 
-bot.command(:wallet, usage: config["prefix"] + "wallet [User Mention]") do |event, mention|
+bot.command(:wallet, usage: config["prefix"] + "wallet [User Mention]", description: "Get somebody's wallet") do |event, mention|
     if mention != nil
         user = bot.parse_mention(mention)
         if wallets.where(userid: user.id).get(:address) != nil
@@ -215,7 +241,7 @@ bot.command(:wallet, usage: config["prefix"] + "wallet [User Mention]") do |even
     nil
 end
 
-bot.command(:updatewallet, usage: config["prefix"]+"updatewallet <New Wallet>") do |event, wallet|
+bot.command(:updatewallet, usage: config["prefix"]+"updatewallet <New Wallet>", description: "Update your wallet in the DB") do |event, wallet|
     if wallets.where(userid: event.user.id).get(:address) == nil
         event.channel.send_embed do |embed|
             embed.title = ":x:Error:x:"
@@ -264,7 +290,7 @@ bot.command(:updatewallet, usage: config["prefix"]+"updatewallet <New Wallet>") 
     nil
 end
 
-bot.command(:tipowner) do |event|
+bot.command(:tipowner, description: "Get the creators' addresses") do |event|
     event.channel.send_embed do |embed|
         embed.title = "So you want to tip the bot owner eh?"
         embed.description = "If you want to tip the creator of TRTLBot, you can use this address:\n\nTRTLv1B7voYh5LQ38frGLvFpZ7bEXcvMD66fN4kzgww3d1eAxGJeGAz49aFqT5XUQsFJbY69ubf3JZ8ZkNmxhQCPeo4e3xVkAoD\n\nIf you would like to tip the creator of TurtleBot, you can use this address:\n\nTRTLuzVNVhSZaUbmqp5DiC8esAhpXLQgzYPKAjtGHDCVKsSBoEBfftZMabFxDekEAT6hDkyD8LRzyb8zi7yEqgmm9152SDxCHZX"
@@ -272,7 +298,7 @@ bot.command(:tipowner) do |event|
     end
 end
 
-bot.command(:deposit) do |event|
+bot.command(:deposit, help_available: false) do |event|
     user = event.user
     if wallets.where(userid: event.user.id).get(:address) != nil
         event.user.pm.send_embed do |embed|
@@ -289,8 +315,33 @@ bot.command(:deposit) do |event|
     end
 end
 
-bot.command(:choose, min_args: 2) do |event, *args|
-    event.respond("I choose: " + args[rand(0..(args.length)-1)] + "!")
+bot.command(:stats, description: "Get some stats on the bot") do |event|
+    botowner = bot.bot_application.owner
+    $servercount = 0
+    event.bot.servers.each_value { |server| $servercount += 1 }
+    event.channel.send_embed do |embed|
+        embed.add_field(name: "Bot Version", value: VERSION, inline: true)
+        embed.add_field(name: "Owner", value: "#{botowner.name}##{botowner.discriminator}", inline: true)
+        embed.add_field(name: "Server Count", value: $servercount, inline: true)
+        embed.add_field(name: "Discordrb Version", value: Gem.loaded_specs["discordrb"].version, inline: true)
+        embed.add_field(name: "Sequel Version", value: Gem.loaded_specs["sequel"].version, inline: true)
+        embed.add_field(name: "Httparty Version", value: Gem.loaded_specs["httparty"].version, inline: true)
+        embed.colour = 0xD4AF37
+    end
+end
+
+bot.command(:suggest, description: "Submit a suggestion for a feature", usage: config["prefix"]+"suggest <*Suggestion>", bucket: :suggestcool) do |event, *suggestion|
+    bot.find_channel("suggestions","TRTLBotServ")[0].send_embed do |embed|
+        embed.title = "Suggestion"
+        embed.description = "#{suggestion.join(' ')}"
+        embed.footer = embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: "#{event.author.name}##{event.author.discriminator}", icon_url: event.author.avatar_url)
+        embed.colour = 0xD4AF37
+    end
+    event.channel.send_embed do |embed|
+        embed.title = "Success"
+        embed.description = "Your Suggestion has been succesfully submitted"
+        embed.colour = 0x27aa6b
+    end
 end
 
 bot.run
