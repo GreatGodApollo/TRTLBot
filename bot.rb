@@ -28,6 +28,7 @@ DB = Sequel.connect('sqlite://trtl.db')
 bot = Discordrb::Commands::CommandBot.new(token: config["token"], client_id: config["clientid"], prefix: config["prefix"])
 
 bot.bucket :ping, limit: 2, time_span: 60, delay: 30
+bot.bucket :price, limit: 1, time_span: 30
 
 TURTLE_EMOJI = "🐢".freeze
 CHECK_MARK = "✅".freeze 
