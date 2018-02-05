@@ -165,11 +165,11 @@ bot.command(:registerwallet, usage: config["prefix"] + "registerwallet <Address>
                 wallets.where(id: listing).update(messageid: em.id)
                 break
             end
-            event.channel.send_embed do |embed|
-                embed.title = "Success"
-                embed.description = "Your wallet has been succesfully submitted"
-                embed.colour = 0x27aa6b
-            end
+        end
+        event.channel.send_embed do |embed|
+            embed.title = "Success"
+            embed.description = "Your wallet has been succesfully submitted"
+            embed.colour = 0x27aa6b
         end
     elsif wallet.length > 99
         event.channel.send_embed do |embed|
