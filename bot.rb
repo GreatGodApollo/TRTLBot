@@ -7,15 +7,18 @@ require 'discordrb'
 require 'sequel'
 require 'json'
 require 'httparty'
+require 'slack-ruby-client'
+require 'colorize'
 
 
 # Json stuffs
 configfile = File.read("config.json")
-config = JSON.parse(configfile)
+dconfig = JSON.parse(configfile)["discord"]
+sconfig = JSON.parse(configfile)["slack"]
 VERSION = "1.2.1"
 
 
-if config['token'] == nil || config['prefix'] == nil || config['clientid'] == nil
+if dconfig['token'] == nil || dconfig['prefix'] == nil || dconfig['clientid'] == nil || sconfig['token'] == nil
     exit
 end
 
@@ -25,7 +28,14 @@ ROLENAME = config["role"]
 DB = Sequel.connect('sqlite://trtl.db') 
 
 # Define the bot
-bot = Discordrb::Commands::CommandBot.new(token: config["token"], client_id: config["clientid"], prefix: config["prefix"])
+bot = Discordrb::Commands::CommandBot.new(token: dconfig["token"], client_id: dconfig["clientid"], prefix: dconfig["prefix"])
+
+# Slack Bot
+Slack.configure do |conf|
+    conf.token = sconfig["token"]
+end
+
+client = Slack::RealTime::Client.new
 
 bot.bucket :ping, limit: 2, time_span: 60, delay: 30
 bot.bucket :price, limit: 1, time_span: 30
@@ -144,7 +154,7 @@ bot.command(:pong, help_available: false, bucket: :ping, channels: [401109818607
     nil
 end
 
-bot.command(:registerwallet, usage: config["prefix"] + "registerwallet <Address>", description: "Register your wallet in the DB") do |event, wallet|
+bot.command(:registerwallet, usage: dconfig["prefix"] + "registerwallet <Address>", description: "Register your wallet in the DB") do |event, wallet|
     if wallet == nil 
         event.channel.send_embed do |embed|
             embed.title = ":x:Error:x:"
@@ -200,7 +210,7 @@ bot.command(:registerwallet, usage: config["prefix"] + "registerwallet <Address>
 end
 
 
-bot.command(:wallet, usage: config["prefix"] + "wallet [User Mention]", description: "Get somebody's wallet") do |event, mention|
+bot.command(:wallet, usage: dconfig["prefix"] + "wallet [User Mention]", description: "Get somebody's wallet") do |event, mention|
     if mention != nil
         user = bot.parse_mention(mention)
         if wallets.where(userid: user.id).get(:address) != nil
@@ -241,7 +251,7 @@ bot.command(:wallet, usage: config["prefix"] + "wallet [User Mention]", descript
     nil
 end
 
-bot.command(:updatewallet, usage: config["prefix"]+"updatewallet <New Wallet>", description: "Update your wallet in the DB") do |event, wallet|
+bot.command(:updatewallet, usage: dconfig["prefix"]+"updatewallet <New Wallet>", description: "Update your wallet in the DB") do |event, wallet|
     if wallets.where(userid: event.user.id).get(:address) == nil
         event.channel.send_embed do |embed|
             embed.title = ":x:Error:x:"
@@ -330,7 +340,7 @@ bot.command(:stats, description: "Get some stats on the bot") do |event|
     end
 end
 
-bot.command(:suggest, description: "Submit a suggestion for a feature", usage: config["prefix"]+"suggest <*Suggestion>", bucket: :suggestcool) do |event, *suggestion|
+bot.command(:suggest, description: "Submit a suggestion for a feature", usage: dconfig["prefix"]+"suggest <*Suggestion>", bucket: :suggestcool) do |event, *suggestion|
     bot.find_channel("suggestions","TRTLBotServ")[0].send_embed do |embed|
         embed.title = "Suggestion"
         embed.description = "#{suggestion.join(' ')}"
@@ -344,4 +354,38 @@ bot.command(:suggest, description: "Submit a suggestion for a feature", usage: c
     end
 end
 
-bot.run
+bot.message do |event|
+  if event.channel.id == 401109818607140864 && !event.author.bot_account
+      puts "DISCORD #{event.author.name}##{event.author.discriminator}: ".bold + " #{event.content}"
+      client.web_client.chat_postMessage channel: '#discord-slack', text: "*DISCORD #{event.author.name}##{event.author.discriminator}:* #{event.content}"
+  end
+end
+
+
+# Slack Bot Features
+client.on :hello do
+  puts "Successfully connected, welcome '#{client.self.name}' to the '#{client.team.name}' team at https://#{client.team.domain}.slack.com."
+end
+
+client.on :message do |data|
+    if data.channel == "C932E9J2C"
+        begin
+          puts "SLACK #{client.web_client.users_info(user: "#{data.user}")["user"]["profile"]["display_name"]}: ".bold + " #{data.text}".uncolorize
+          bot.find_channel("bots","TurtleCoin")[0].send("**SLACK #{client.web_client.users_info(user: "#{data.user}")["user"]["profile"]["display_name"]}:** #{data.text}")
+        rescue
+
+        end
+    end
+end
+
+client.on :close do |_data|
+  puts "Client is about to disconnect"
+end
+
+client.on :closed do |_data|
+  puts "Client has disconnected successfully!"
+end
+
+
+bot.run(async: true)
+client.start!

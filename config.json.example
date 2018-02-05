@@ -1,0 +1,11 @@
+{
+    "discord":{
+        "token":"Token",
+        "clientid"://BotClientID,
+        "owner"://OwnerClientID,
+        "prefix":"."
+    },
+    "slack":{
+        "token":"SlackAPIToken"
+    }
+}
