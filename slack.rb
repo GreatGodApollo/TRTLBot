@@ -1,3 +1,6 @@
+# slack.rb
+# DO NOT USE THIS <--- IS BROKEN
+
 require 'discordrb'
 require 'json'
 require 'colorize'
