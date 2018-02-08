@@ -60,10 +60,24 @@ disabled = DB[:disabled]
 
 bot.command(:price, description: "Get the current price of TRTL in BTC", bucket: :price) do |event|
     resp = HTTParty.get("https://tradeogre.com/api/v1/ticker/BTC-TRTL")
+    btc = HTTParty.get("https://www.bitstamp.net/api/ticker/")
+    tsresp = HTTParty.get("https://tradesatoshi.com/api/public/getticker?market=TRTL_BTC")
     event.channel.send_embed do |embed|
-        embed.title = "Current Price of TRTL"
+        embed.title = "Current Price of TRTL: Tradeogre"
         embed.url = "https://tradeogre.com/exchange/BTC-TRTL"
-        embed.description = "#{JSON.parse(resp)["price"]} BTC"
+        embed.add_field(name: "Low: ", value: "#{(JSON.parse(resp)["low"].to_f*100000000).to_i} sats", inline: true)
+        embed.add_field(name: "Current: ", value: "#{(JSON.parse(resp)["price"].to_f*100000000).to_i} sats", inline: true)
+        embed.add_field(name: "High: ", value: "#{(JSON.parse(resp)["high"].to_f*100000000).to_i} sats", inline: true)
+        embed.add_field(name: "Volume: ", value: "#{JSON.parse(resp)["volume"]} BTC", inline: true)
+        embed.add_field(name: "BTC-USD: ", value: "$#{JSON.parse(btc.body)["last"]} USD", inline: true)
+        embed.color = 0xD4AF37
+    end
+    event.channel.send_embed do |embed|
+        embed.title = "Current Price of TRTL: TradeSatoshi"
+        embed.url = "https://tradesatoshi.com/Exchange?market=TRTL_BTC"
+        embed.add_field(name: "Bid: ", value: "#{(JSON.parse(tsresp.body)["result"]["bid"].to_f*100000000).to_i} sats", inline: true)
+        embed.add_field(name: "Ask: ", value: "#{(JSON.parse(tsresp.body)["result"]["ask"].to_f*100000000).to_i} sats", inline: true)
+        embed.add_field(name: "Current: ", value: "#{(JSON.parse(tsresp.body)["result"]["last"].to_f*100000000).to_i} sats", inline: true)
         embed.color = 0xD4AF37
     end
 end
