@@ -8,12 +8,11 @@ require 'discordrb'
 require 'sequel'
 require 'json'
 require 'httparty'
-require 'colorize'
 
 
 # Json stuffs
 configfile = File.read("config.json")
-dconfig = JSON.parse(configfile)["discord"]
+dconfig = JSON.parse(configfile)
 VERSION = "1.2.2"
 
 
@@ -21,15 +20,10 @@ if dconfig['token'] == nil || dconfig['prefix'] == nil || dconfig['clientid'] ==
     exit
 end
 
-
-
-ROLENAME = config["role"]
 DB = Sequel.connect('sqlite://trtl.db') 
 
 # Define the bot
-bot = Discordrb::Commands::CommandBot.new(token: dconfig["token"], client_id: dconfig["clientid"], prefix: dconfig["prefix"])
-
-client = Slack::RealTime::Client.new
+bot = Discordrb::Commands::CommandBot.new(token: dconfig["token"], client_id: dconfig["clientid"], prefix: dconfig["prefix"], help_command: false)
 
 bot.bucket :ping, limit: 2, time_span: 60, delay: 30
 bot.bucket :price, limit: 1, time_span: 30
@@ -56,6 +50,42 @@ end
 
 wallets = DB[:wallets]
 disabled = DB[:disabled]
+
+bot.command(:help, max_args: 1, description: 'Shows a list of all the commands available or displays help for a specific command.', usage: 'help [command name]') do |event, command_name|
+    if command_name
+      command = bot.commands[command_name.to_sym]
+      return "The command `#{command_name}` does not exist!" unless command
+      desc = command.attributes[:description] || '*No description available*'
+      usage = command.attributes[:usage]
+      parameters = command.attributes[:parameters]
+      result = "**`#{command_name}`**: #{desc}"
+      result += "\nUsage: `#{usage}`" if usage
+      if parameters
+        result += "\nAccepted Parameters:\n```"
+        parameters.each { |p| result += "\n#{p}" }
+        result += '```'
+      end
+      result
+    else
+      available_commands = bot.commands.values.reject do |c|
+        !c.attributes[:help_available]
+      end
+      case available_commands.length
+      when 0..15
+        available_commands.reduce "**List of commands:**\n" do |memo, c|
+          memo + "**`#{c.name}`**: #{c.attributes[:description] || '*No description available*'}\n"
+        end
+      when 5..50
+        (available_commands.reduce "**List of commands:**\n" do |memo, c|
+          memo + "`#{c.name}`, "
+        end)[0..-3]
+      else
+        event.user.pm(available_commands.reduce("**List of commands:**\n") { |m, e| m + "`#{e.name}`, " }[0..-3])
+        event.channel.pm? ? '' : 'Sending list in PM!'
+      end
+    end
+end
+
 
 
 bot.command(:price, description: "Get the current price of TRTL in BTC", bucket: :price) do |event|
@@ -84,7 +114,7 @@ end
 
 # Owner Commands
 bot.command(:o, description: "Big Boys Only") do |event, command, *args|
-    break unless event.user.id == config["owner"]
+    break unless event.user.id == dconfig["owner"]
     case command
     when "eval"
         begin
