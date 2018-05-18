@@ -1,5 +1,6 @@
 # TRTLBot
-A bot made by `Apollo - beezTEM#9292` for the TRTL Discord Server
+A bot made by `apollo#9292` for the TRTL Discord Server
+
 Note: This bot is not in use anymore so in order to see what it does you must run it yourself. Due to this I am no longer providing support for the bot, use at your own risk.
 
 # Commands
